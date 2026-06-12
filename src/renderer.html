@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Torneo Esmeralda · Launcher</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#050f08;--bg2:#081408;--bg3:#0a1a0a;
+  --g1:#00e87a;--g2:#00c060;--g3:#007a40;--g4:#004428;
+  --yw:#f5d020;--yw2:#c8a800;--yw3:#ffe060;
+  --red:#e04050;--yel:#f0c030;
+  --t1:#c0f0d0;--t2:#70b888;--t3:#2e5e40;
+  --bd:rgba(0,180,90,0.18);--bd2:rgba(0,180,90,0.32);
+  --fn:'Share Tech Mono',monospace;
+}
+
+body{
+  background:var(--bg);font-family:var(--fn);color:var(--t1);font-size:13px;
+  min-height:100vh;display:flex;align-items:flex-start;justify-content:center;
+  padding:20px;user-select:none;
+}
+
+.app{
+  background:var(--bg);border:1px solid var(--bd2);border-radius:14px;
+  overflow:hidden;width:100%;max-width:660px;position:relative;
+}
+.crt{
+  position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.13) 3px,rgba(0,0,0,0.13) 4px);
+  border-radius:14px;
+}
+
+/* Header */
+.hdr{
+  position:relative;z-index:5;background:rgba(5,14,8,0.88);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--bd2);padding:11px 18px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.logo-row{display:flex;align-items:center;gap:10px}
+.app-title{font-size:12px;letter-spacing:3px;color:var(--g1);text-transform:uppercase}
+.lanette-tag{font-size:8px;color:var(--t3);letter-spacing:1px;margin-top:2px;opacity:.7}
+.hdr-r{display:flex;align-items:center;gap:8px}
+.user-chip{
+  display:flex;align-items:center;gap:7px;background:rgba(0,180,90,0.07);
+  border:1px solid var(--bd);border-radius:20px;padding:3px 10px;
+  font-size:11px;color:var(--t2);
+}
+.dot-s{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dg{background:var(--g1);box-shadow:0 0 5px var(--g1)}
+.dy{background:var(--yel);box-shadow:0 0 4px var(--yel)}
+.btn-x{
+  background:transparent;border:1px solid rgba(224,64,80,0.45);color:var(--red);
+  font-family:var(--fn);font-size:9px;letter-spacing:2px;
+  padding:4px 9px;border-radius:4px;cursor:pointer;transition:.15s all;
+}
+.btn-x:hover{background:rgba(224,64,80,0.12);border-color:var(--red)}
+
+/* Body */
+.body{position:relative;z-index:5;padding:20px;display:flex;flex-direction:column;gap:18px}
+
+/* Login */
+.login-screen{display:flex;flex-direction:column;gap:14px;padding:10px 0}
+.login-title{font-size:9px;letter-spacing:3px;color:var(--t3);text-transform:uppercase}
+.px-input{
+  font-family:var(--fn);font-size:15px;padding:10px 14px;
+  background:rgba(5,14,8,0.8);border:1px solid var(--bd2);
+  color:var(--t1);border-radius:5px;outline:none;width:100%;
+}
+.px-input:focus{border-color:var(--g2);box-shadow:0 0 0 1px rgba(0,180,90,0.2)}
+.px-input::placeholder{color:var(--t3)}
+.login-sep{height:1px;background:linear-gradient(90deg,transparent,var(--bd2),transparent);margin:4px 0}
+.srv-label{font-size:8px;letter-spacing:2px;color:var(--t3);text-transform:uppercase}
+.btn-login-main{
+  width:100%;background:linear-gradient(135deg,var(--g3),var(--g2));
+  border:none;border-radius:7px;padding:14px 0;
+  font-family:var(--fn);font-size:12px;letter-spacing:3px;
+  color:#001a0a;font-weight:bold;cursor:pointer;transition:.18s all;outline:none;
+}
+.btn-login-main:hover{background:linear-gradient(135deg,var(--g2),var(--g1));transform:translateY(-1px)}
+.btn-login-main:disabled{opacity:.5;cursor:wait;transform:none}
+
+/* Play zone */
+.play-zone{display:flex;flex-direction:column;align-items:center;gap:13px;padding:10px 0 2px}
+.play-hint{font-size:9px;letter-spacing:4px;color:var(--t3);text-transform:uppercase}
+
+@keyframes play-pulse{
+  0%,100%{box-shadow:0 0 14px rgba(245,208,32,.4),0 0 34px rgba(245,208,32,.14)}
+  50%{box-shadow:0 0 26px rgba(245,208,32,.7),0 0 56px rgba(245,208,32,.26),inset 0 0 16px rgba(245,208,32,.08)}
+}
+@keyframes yw-hover{
+  0%,100%{box-shadow:0 0 22px rgba(255,224,96,.7),0 0 48px rgba(255,224,96,.3)}
+  50%{box-shadow:0 0 36px rgba(255,224,96,1),0 0 72px rgba(255,224,96,.45)}
+}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+.btn-play{
+  width:100%;max-width:420px;
+  background:linear-gradient(135deg,var(--yw3) 0%,var(--yw) 50%,var(--yw2) 100%);
+  border:none;border-radius:9px;padding:18px 0;
+  font-family:var(--fn);font-size:14px;letter-spacing:3px;
+  color:#1a0a00;font-weight:bold;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  transition:.2s all;animation:play-pulse 3s ease-in-out infinite;outline:none;
+  position:relative;overflow:hidden;
+}
+.btn-play::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.22),transparent 55%);pointer-events:none}
+.btn-play:hover{animation:yw-hover .9s ease-in-out infinite;background:linear-gradient(135deg,#fff0a0,var(--yw3),var(--yw));color:#1a0a00;transform:translateY(-2px)}
+.btn-play:active{transform:scale(.98);transition:.05s}
+.btn-play.loading{background:linear-gradient(135deg,#2a2000,#1a1400);color:#5a4800;animation:none;cursor:wait}
+.btn-play.loading:hover{transform:none}
+.btn-play.running{
+  background:linear-gradient(135deg,#002a14,#001a0a);color:var(--g2);
+  animation:none;cursor:default;border:1px solid var(--g4);
+}
+.btn-play.running:hover{transform:none;box-shadow:none}
+
+.btn-hub{
+  width:100%;max-width:420px;
+  background:rgba(0,180,90,0.07);border:1px solid var(--bd2);border-radius:7px;padding:10px 0;
+  font-family:var(--fn);font-size:10px;letter-spacing:2px;color:var(--g2);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;transition:.18s all;
+}
+.btn-hub:hover{background:rgba(0,180,90,0.13);border-color:var(--g2);color:var(--g1);box-shadow:0 0 14px rgba(0,232,122,.12)}
+
+/* Divider */
+.divider{height:1px;background:linear-gradient(90deg,transparent,var(--bd2),transparent)}
+
+/* Medals */
+.medals-section{display:flex;flex-direction:column;gap:10px}
+.sec-header{display:flex;align-items:center;justify-content:space-between}
+.sec-title{font-size:9px;letter-spacing:3px;color:var(--t3);text-transform:uppercase}
+.btn-mini{
+  background:transparent;border:1px solid var(--bd);border-radius:3px;
+  padding:2px 8px;font-family:var(--fn);font-size:8px;color:var(--t3);
+  cursor:pointer;transition:.12s all;
+}
+.btn-mini:hover{border-color:var(--g3);color:var(--g2)}
+.medals-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+
+.prog-wrap{display:flex;flex-direction:column;gap:5px}
+.prog-labels{display:flex;justify-content:space-between}
+.hp-label{font-size:10px;color:var(--t3);letter-spacing:1px}
+.hp-pct{font-size:10px;color:var(--t3)}
+.hp-track{height:10px;background:rgba(0,0,0,0.5);border-radius:2px;border:1px solid var(--t3);position:relative}
+.hp-fill{
+  height:100%;background:linear-gradient(90deg,var(--g4),var(--g1));border-radius:1px;
+  width:0;transition:width 1.5s cubic-bezier(.4,0,.2,1);
+  box-shadow:0 0 6px rgba(0,232,122,.4);position:relative;
+}
+.hp-fill::after{content:'';position:absolute;top:1px;left:4px;right:4px;height:2px;background:rgba(255,255,255,.25);border-radius:1px}
+
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{
+  background:rgba(8,20,8,0.7);border:1px solid var(--bd);border-radius:8px;
+  padding:10px 8px;text-align:center;transition:.15s all;backdrop-filter:blur(4px);
+}
+.stat:hover{border-color:var(--bd2)}
+.stat-n{font-size:20px;color:var(--g1);line-height:1;text-shadow:0 0 8px rgba(0,232,122,.35)}
+.stat-sub{font-size:8px;color:var(--t3);margin-top:4px;letter-spacing:1px}
+
+/* LanetteOS panel */
+.dev-toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;background:rgba(5,12,5,0.6);border:1px solid var(--bd);
+  border-radius:6px;cursor:pointer;user-select:none;transition:.12s all;backdrop-filter:blur(6px);
+}
+.dev-toggle:hover{border-color:var(--g3)}
+.dev-toggle-title{font-size:10px;color:var(--t3);letter-spacing:1px;display:flex;align-items:center;gap:7px}
+.dev-toggle-sub{font-size:8px;color:var(--t3);opacity:.5;padding-left:20px;letter-spacing:.5px;margin-top:2px}
+.dev-chevron{transition:.22s transform}
+.dev-chevron.open{transform:rotate(180deg)}
+.dev-panel{overflow:hidden;max-height:0;transition:max-height .38s cubic-bezier(.4,0,.2,1)}
+.dev-panel.open{max-height:700px}
+.dev-inner{
+  background:rgba(5,12,5,0.75);border:1px solid var(--bd);border-top:none;
+  border-radius:0 0 6px 6px;padding:13px;display:flex;flex-direction:column;gap:11px;
+  backdrop-filter:blur(8px);
+}
+
+.badges-row{display:flex;gap:6px;flex-wrap:wrap}
+.badge{display:flex;align-items:center;gap:5px;border:1px solid var(--bd);border-radius:3px;padding:4px 9px;font-size:9px}
+.badge.ok{color:var(--g1);border-color:rgba(0,232,122,0.3)}
+.badge.warn{color:var(--yel);border-color:rgba(240,192,48,0.3)}
+.badge.err{color:var(--red);border-color:rgba(224,64,80,0.3)}
+
+/* Server URL inline edit */
+.srv-row{display:flex;align-items:center;gap:6px}
+.srv-display{font-size:9px;color:var(--t3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.srv-edit-row{display:flex;align-items:center;gap:5px}
+.srv-edit-row .px-input{font-size:12px;padding:5px 10px;flex:1;border-radius:4px}
+.btn-sm{
+  background:transparent;border:1px solid var(--bd);border-radius:3px;
+  padding:3px 8px;font-family:var(--fn);font-size:8px;color:var(--t3);
+  cursor:pointer;white-space:nowrap;transition:.12s all;
+}
+.btn-sm:hover{border-color:var(--g3);color:var(--g2)}
+
+.log-list{display:flex;flex-direction:column;gap:4px;max-height:140px;overflow-y:auto}
+.log-item{display:flex;gap:7px;font-size:10px;line-height:1.5}
+.log-t{color:var(--t3);flex-shrink:0;width:32px}
+.log-bar{width:2px;border-radius:1px;flex-shrink:0;align-self:stretch;min-height:12px}
+.lbg{background:var(--g2)}.lby{background:var(--yel)}.lbr{background:var(--red)}.lbn{background:#1a1a1a}
+.log-msg{color:var(--t2)}.log-msg b{color:var(--t1)}
+
+.dev-actions{display:flex;gap:7px;flex-wrap:wrap}
+.btn-dev{
+  background:transparent;border:1px solid var(--bd);border-radius:4px;
+  padding:5px 11px;font-family:var(--fn);font-size:9px;color:var(--t3);
+  cursor:pointer;display:flex;align-items:center;gap:5px;transition:.12s all;
+}
+.btn-dev:hover{border-color:var(--g3);color:var(--g2)}
+.btn-dev.danger:hover{border-color:rgba(224,64,80,.5);color:var(--red)}
+
+.confirm-box{
+  background:rgba(30,4,8,.8);border:1px solid rgba(224,64,80,.4);
+  border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:9px;backdrop-filter:blur(6px);
+}
+.confirm-msg{font-size:10px;color:var(--t2);line-height:1.7}
+.confirm-msg b{color:var(--red)}
+.confirm-btns{display:flex;gap:7px}
+.btn-cy{background:rgba(224,64,80,.15);border:1px solid var(--red);border-radius:4px;padding:5px 13px;font-family:var(--fn);font-size:9px;color:var(--red);cursor:pointer;transition:.12s all}
+.btn-cy:hover{background:rgba(224,64,80,.28)}
+.btn-cn{background:transparent;border:1px solid var(--bd);border-radius:4px;padding:5px 13px;font-family:var(--fn);font-size:9px;color:var(--t2);cursor:pointer;transition:.12s all}
+.btn-cn:hover{border-color:var(--g3);color:var(--g2)}
+
+/* Tracker warning */
+.tracker-warn{
+  background:rgba(30,16,0,.8);border:1px solid rgba(240,192,48,.3);
+  border-radius:6px;padding:12px;display:flex;flex-direction:column;gap:8px;
+}
+.tracker-warn-title{font-size:9px;letter-spacing:2px;color:var(--yel);text-transform:uppercase}
+.tracker-warn-msg{font-size:10px;color:var(--t2);line-height:1.8}
+.tracker-warn-msg b{color:var(--g1)}
+
+/* Footer */
+.footer{
+  position:relative;z-index:5;background:rgba(5,12,5,0.8);border-top:1px solid var(--bd);
+  padding:9px 18px;display:flex;align-items:center;justify-content:space-between;
+  backdrop-filter:blur(8px);
+}
+.srv-info{display:flex;align-items:center;gap:6px;font-size:9px;color:var(--t3)}
+.sync-txt{font-size:9px;color:var(--t3)}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--g4);border-radius:3px}
+
+.hidden{display:none!important}
+
+/* Banner de actualización */
+.upd-banner{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  background:linear-gradient(90deg,#0a2410,#0d3018);
+  border-bottom:1px solid rgba(0,232,122,0.5);
+  color:var(--t1);font-size:11px;letter-spacing:1px;
+  padding:8px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  transform:translateY(-100%);transition:transform 0.25s ease;
+}
+.upd-banner.show{transform:translateY(0)}
+.upd-banner.ready{border-bottom-color:var(--yw);background:linear-gradient(90deg,#241a0a,#2f240a)}
+.upd-banner.err{border-bottom-color:var(--red);background:linear-gradient(90deg,#240a10,#2f0a14)}
+.upd-text{flex:1;display:flex;align-items:center;gap:8px}
+.upd-spinner{width:10px;height:10px;border:2px solid var(--bd2);border-top-color:var(--g1);
+  border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.upd-btn{
+  background:transparent;border:1px solid var(--g1);color:var(--g1);
+  font-family:inherit;font-size:10px;letter-spacing:1px;padding:4px 10px;cursor:pointer;
+  border-radius:3px;text-transform:uppercase;
+}
+.upd-btn:hover{background:rgba(0,232,122,0.12)}
+.upd-banner.ready .upd-btn{border-color:var(--yw);color:var(--yw)}
+.upd-banner.ready .upd-btn:hover{background:rgba(245,208,32,0.12)}
+.upd-close{
+  background:transparent;border:none;color:var(--t3);font-family:inherit;font-size:13px;cursor:pointer;
+}
+.upd-close:hover{color:var(--t1)}
+</style>
+</head>
+<body>
+
+<!-- Banner de actualizaciones -->
+<div id="upd-banner" class="upd-banner">
+  <div class="upd-text" id="upd-text">—</div>
+  <button class="upd-btn hidden" id="upd-install">Reiniciar e instalar</button>
+  <button class="upd-close" id="upd-close" title="Ocultar">×</button>
+</div>
+
+<div class="app">
+  <div class="crt"></div>
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="logo-row">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+        <circle cx="13" cy="13" r="11" fill="#0a1a0a" stroke="#00e87a" stroke-width="1.6"/>
+        <path d="M2 13 A11 11 0 0 1 24 13" fill="rgba(0,232,122,0.12)"/>
+        <line x1="2" y1="13" x2="24" y2="13" stroke="#00e87a" stroke-width="1.6"/>
+        <circle cx="13" cy="13" r="4" fill="#0a1a0a" stroke="#00e87a" stroke-width="1.6"/>
+        <circle cx="13" cy="13" r="1.6" fill="#00e87a"/>
+      </svg>
+      <div>
+        <div class="app-title">Torneo Esmeralda</div>
+        <div class="lanette-tag">LanetteOS v2.1.0 · Link System</div>
+      </div>
+    </div>
+    <div class="hdr-r" id="hdr-r"></div>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+
+    <!-- LOGIN SCREEN -->
+    <div id="screen-login" class="login-screen hidden">
+      <div class="login-title">Entrenador</div>
+      <input id="login-username" class="px-input" placeholder="tu username" autocomplete="off" />
+      <button class="btn-login-main" id="btn-login">ENTRAR AL TORNEO</button>
+      <div class="login-sep" style="height:1px;background:linear-gradient(90deg,transparent,var(--bd2),transparent);margin:4px 0"></div>
+      <div class="srv-label">URL del servidor</div>
+      <input id="cfg-api" class="px-input" placeholder="https://..." style="font-size:12px;padding:8px 12px" />
+      <div style="font-size:9px;color:var(--t3);letter-spacing:.5px">Pídela al organizador del torneo</div>
+    </div>
+
+    <!-- MAIN SCREEN -->
+    <div id="screen-main" class="hidden">
+
+      <!-- Play zone -->
+      <div class="play-zone">
+        <div class="play-hint">— presiona para comenzar —</div>
+        <button class="btn-play" id="btn-play">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <circle cx="11" cy="11" r="9" stroke="#1a0a00" stroke-width="1.5" fill="none"/>
+            <path d="M2 11 Q11 11 20 11" stroke="#1a0a00" stroke-width="1.5"/>
+            <circle cx="11" cy="11" r="3" fill="none" stroke="#1a0a00" stroke-width="1.5"/>
+            <circle cx="11" cy="11" r="1.2" fill="#1a0a00"/>
+          </svg>
+          JUGAR POKÉMON ESMERALDA
+        </button>
+        <button class="btn-hub" id="btn-hub">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <rect x="1" y="2" width="12" height="10" rx="2" stroke="#00c060" stroke-width="1.2" fill="none"/>
+            <circle cx="7" cy="7" r="3" stroke="#00c060" stroke-width="1" fill="none"/>
+            <line x1="7" y1="4" x2="7" y2="5.5" stroke="#00c060" stroke-width="1"/>
+            <line x1="7" y1="8.5" x2="7" y2="10" stroke="#00c060" stroke-width="1"/>
+            <line x1="4" y1="7" x2="5.5" y2="7" stroke="#00c060" stroke-width="1"/>
+            <line x1="8.5" y1="7" x2="10" y2="7" stroke="#00c060" stroke-width="1"/>
+          </svg>
+          ABRIR HUB
+        </button>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Medals / Progress -->
+      <div class="medals-section">
+        <div class="sec-header">
+          <span class="sec-title">Progreso del torneo</span>
+          <button class="btn-mini" id="btn-ranking">ranking</button>
+        </div>
+        <div class="medals-row" id="medals-row"></div>
+        <div class="prog-wrap">
+          <div class="prog-labels">
+            <span class="hp-label">HP ──── Progreso</span>
+            <span class="hp-pct" id="hp-pct">0 / 8</span>
+          </div>
+          <div class="hp-track"><div class="hp-fill" id="hp-fill"></div></div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat"><div class="stat-n" id="stat-events">0</div><div class="stat-sub">Eventos</div></div>
+          <div class="stat"><div class="stat-n" id="stat-pv">0</div><div class="stat-sub">PV total</div></div>
+          <div class="stat"><div class="stat-n" id="stat-rank">—</div><div class="stat-sub">Ranking</div></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- LanetteOS collapsible panel -->
+      <div>
+        <div class="dev-toggle" id="dev-toggle">
+          <div>
+            <div class="dev-toggle-title">
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <rect x="1" y="2" width="11" height="9" rx="1.5" stroke="#3d6e52" stroke-width="1"/>
+                <line x1="3" y1="5" x2="10" y2="5" stroke="#3d6e52" stroke-width=".8"/>
+                <line x1="3" y1="7" x2="8" y2="7" stroke="#3d6e52" stroke-width=".8"/>
+              </svg>
+              LanetteOS · info técnica
+            </div>
+            <div class="dev-toggle-sub">sistema, actividad y herramientas de desarrollador</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div class="dot-s dg" id="sys-dot"></div>
+            <svg class="dev-chevron" id="dev-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <polyline points="2,4 6,8 10,4" stroke="#3d6e52" stroke-width="1.5" fill="none"/>
+            </svg>
+          </div>
+        </div>
+        <div class="dev-panel" id="dev-panel">
+          <div class="dev-inner">
+
+            <!-- Status badges -->
+            <div class="badges-row">
+              <div class="badge warn" id="badge-backend">· Backend...</div>
+              <div class="badge warn" id="badge-save">· Save...</div>
+              <div class="badge warn" id="badge-emu">· Emulador off</div>
+              <div class="badge warn" id="badge-rom">· ROM...</div>
+            </div>
+
+            <!-- Server URL -->
+            <div>
+              <div class="srv-row" id="srv-view">
+                <div class="srv-display" id="srv-url-display">—</div>
+                <button class="btn-sm" id="btn-edit-srv">cambiar servidor</button>
+              </div>
+              <div class="srv-edit-row hidden" id="srv-edit">
+                <input class="px-input" id="input-srv-url" placeholder="https://..." />
+                <button class="btn-sm" id="btn-save-srv">guardar</button>
+                <button class="btn-sm" id="btn-cancel-srv">✕</button>
+              </div>
+            </div>
+
+            <!-- Activity log -->
+            <div>
+              <div class="sec-header" style="margin-bottom:7px">
+                <span class="sec-title">Log de actividad</span>
+              </div>
+              <div class="log-list" id="log-list">
+                <div class="log-item">
+                  <span class="log-t">--:--</span>
+                  <div class="log-bar lbn"></div>
+                  <span class="log-msg">LanetteOS Link System iniciado</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tracker warning (hidden until needed) -->
+            <div class="tracker-warn hidden" id="tracker-warn">
+              <div class="tracker-warn-title">⚠ Tracker no detectado</div>
+              <div class="tracker-warn-msg">
+                Carga el script manualmente en mGBA:<br>
+                <b>Tools → Scripting → Load Script</b><br>
+                Archivo: <b id="tracker-path">—</b>
+              </div>
+              <button class="btn-dev" onclick="document.getElementById('tracker-warn').classList.add('hidden')">entendido</button>
+            </div>
+
+            <!-- Dev actions -->
+            <div class="dev-actions">
+              <button class="btn-dev" id="btn-upload">↑ subir save manualmente</button>
+              <button class="btn-dev danger" id="btn-reset">✕ resetear datos</button>
+            </div>
+
+            <!-- Confirm box -->
+            <div class="confirm-box hidden" id="confirm-box">
+              <div class="confirm-msg">
+                <b>¿Resetear datos locales?</b><br>
+                Se borrará el save local y la sesión almacenada.<br>El progreso en el servidor no cambia.
+              </div>
+              <div class="confirm-btns">
+                <button class="btn-cy" id="btn-confirm-yes">sí, resetear</button>
+                <button class="btn-cn" id="btn-confirm-no">cancelar</button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /screen-main -->
+  </div><!-- /body -->
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="srv-info">
+      <div class="dot-s dg" id="footer-dot"></div>
+      <span id="footer-srv">—</span>
+    </div>
+    <div class="sync-txt" id="sync-txt">save · auto-sync activo</div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+'use strict';
+
+const L = window.launcher;
+
+// ─── Auto-update UI ──────────────────────────────────────────────────────────
+const upd = {
+  banner: null, text: null, btn: null,
+  show(stateClass, html, withBtn=false){
+    if (!this.banner) {
+      this.banner = document.getElementById('upd-banner');
+      this.text   = document.getElementById('upd-text');
+      this.btn    = document.getElementById('upd-install');
+      document.getElementById('upd-close').onclick = () => this.banner.classList.remove('show');
+      this.btn.onclick = async () => {
+        this.show('', `<span class="upd-spinner"></span> Reiniciando…`);
+        await L.installUpdate();
+      };
+    }
+    this.banner.classList.remove('ready','err');
+    if (stateClass) this.banner.classList.add(stateClass);
+    this.text.innerHTML = html;
+    this.btn.classList.toggle('hidden', !withBtn);
+    this.banner.classList.add('show');
+  },
+  hide(){ if (this.banner) this.banner.classList.remove('show'); },
+};
+
+if (L?.onUpdateStatus) {
+  L.onUpdateStatus((s) => {
+    switch (s.state) {
+      case 'checking':
+        // silencioso — sin banner para no spammear
+        break;
+      case 'available':
+        upd.show('', `<span class="upd-spinner"></span> Descargando v${s.version}…`);
+        break;
+      case 'downloading':
+        upd.show('', `<span class="upd-spinner"></span> Descargando v${s.version || ''} · ${s.percent ?? 0}%`);
+        break;
+      case 'ready':
+        upd.show('ready', `Actualización <b>v${s.version}</b> lista — se aplicará al reiniciar.`, true);
+        break;
+      case 'none':
+        upd.hide();
+        break;
+      case 'error':
+        // No mostrar errores de update si la app está offline; solo log
+        console.warn('[update]', s.error);
+        break;
+    }
+  });
+}
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let config = null;
+let stats = { badges: 0, pv: 0, events: 0 };
+let devOpen = false;
+let emuRunning = false;
+
+// ─── Utils ────────────────────────────────────────────────────────────────────
+function $(id) { return document.getElementById(id); }
+
+function showScreen(name) {
+  $('screen-login').classList.toggle('hidden', name !== 'login');
+  $('screen-main').classList.toggle('hidden', name !== 'main');
+}
+
+function addLog(barClass, msg) {
+  const now = new Date();
+  const time = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const d = document.createElement('div');
+  d.className = 'log-item';
+  d.innerHTML = `<span class="log-t">${time}</span><div class="log-bar ${barClass}"></div><span class="log-msg">${msg}</span>`;
+  const list = $('log-list');
+  list.insertBefore(d, list.firstChild);
+  while (list.children.length > 40) list.removeChild(list.lastChild);
+}
+
+function setBadge(id, status, text) {
+  const el = $(id);
+  el.className = `badge ${status}`;
+  el.textContent = `· ${text}`;
+}
+
+function updateMedals(badgeCount) {
+  for (let i = 0; i < 8; i++) {
+    const el = $(`medal-${i}`);
+    if (el) el.innerHTML = makeMedalSVG(medalDefs[i], i < badgeCount);
+  }
+  $('hp-pct').textContent = `${badgeCount} / 8`;
+  $('hp-fill').style.width = `${(badgeCount / 8) * 100}%`;
+}
+
+function updateStatsUI() {
+  $('stat-events').textContent = stats.events;
+  $('stat-pv').textContent = stats.pv;
+}
+
+// ─── Sound ────────────────────────────────────────────────────────────────────
+let actx;
+function getCtx() { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); return actx; }
+function beep(f, d, t='square', v=0.11, dl=0) {
+  try {
+    const c = getCtx(), o = c.createOscillator(), g = c.createGain();
+    o.connect(g); g.connect(c.destination);
+    o.type = t; o.frequency.setValueAtTime(f, c.currentTime + dl);
+    g.gain.setValueAtTime(v, c.currentTime + dl);
+    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + dl + d);
+    o.start(c.currentTime + dl); o.stop(c.currentTime + dl + d + 0.01);
+  } catch(e) {}
+}
+function playSound(n) {
+  if      (n === 'hover')   { beep(880, 0.04, 'sine', 0.06); }
+  else if (n === 'click')   { beep(659, 0.06, 'sine', 0.09); beep(880, 0.06, 'sine', 0.09, 0.06); }
+  else if (n === 'confirm') { beep(523, 0.09, 'sine', 0.1); beep(659, 0.09, 'sine', 0.1, 0.1); beep(784, 0.09, 'sine', 0.1, 0.2); beep(1047, 0.22, 'sine', 0.1, 0.3); }
+  else if (n === 'error')   { beep(220, 0.12, 'sawtooth', 0.13); beep(165, 0.2, 'sawtooth', 0.13, 0.13); }
+  else if (n === 'sync')    { [0,.07,.14,.21].forEach((d,i) => beep(440+i*110, 0.07, 'sine', 0.09, d)); }
+  else if (n === 'boot')    { [130,196,261,349,523,784].forEach((f,i) => beep(f, i<5?.12:.38, 'sine', 0.1, i*0.13)); }
+}
+
+// ─── Particles ────────────────────────────────────────────────────────────────
+function initParticles() {
+  const cvs = document.createElement('canvas');
+  cvs.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:2;border-radius:14px';
+  const app = document.querySelector('.app');
+  app.appendChild(cvs);
+  cvs.width = app.offsetWidth; cvs.height = app.offsetHeight;
+  const ctx = cvs.getContext('2d');
+  const pts = Array.from({length:25}, () => ({
+    x: Math.random()*cvs.width, y: Math.random()*cvs.height,
+    vx: Math.random()*.4+.1, vy: (Math.random()-.5)*.15,
+    r: Math.random()*1.2+.3, o: Math.random()*.2+.04,
+    wo: Math.random()*Math.PI*2,
+  }));
+  function draw() {
+    ctx.clearRect(0, 0, cvs.width, cvs.height);
+    const t = Date.now() / 1000;
+    pts.forEach(p => {
+      p.x += p.vx + Math.sin(t + p.wo) * .15;
+      p.y += p.vy + Math.cos(t * .7 + p.wo) * .1;
+      if (p.x > cvs.width + 4) { p.x = -4; p.y = Math.random() * cvs.height; }
+      if (p.y < -4) p.y = cvs.height + 4;
+      if (p.y > cvs.height + 4) p.y = -4;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(0,220,100,${p.o})`; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ─── Medal SVGs ───────────────────────────────────────────────────────────────
+const medalDefs = [
+  {name:'Piedra',   lit:'#c8c8e0', shape:'rock'},
+  {name:'Puño',     lit:'#e06030', shape:'fist'},
+  {name:'Dinamo',   lit:'#40a0ff', shape:'bolt'},
+  {name:'Calor',    lit:'#ff4020', shape:'flame'},
+  {name:'Equilib.', lit:'#80c040', shape:'balance'},
+  {name:'Pluma',    lit:'#40e0a0', shape:'feather'},
+  {name:'Mente',    lit:'#c040ff', shape:'mind'},
+  {name:'Lluvia',   lit:'#4080ff', shape:'rain'},
+];
+function makeMedalSVG(def, earned) {
+  const c = earned ? def.lit : '#1a2a1a', st = earned ? def.lit : '#2a3a2a';
+  const glow = earned ? `filter:drop-shadow(0 0 6px ${def.lit})` : '';
+  const shapes = {
+    rock:    `<polygon points="16,4 28,8 28,24 16,28 4,24 4,8" fill="${c}" fill-opacity="${earned?.7:.15}" stroke="${st}" stroke-width="1.5"/><polygon points="16,8 24,12 24,20 16,24 8,20 8,12" fill="none" stroke="${st}" stroke-width="1" opacity=".5"/>`,
+    fist:    `<circle cx="16" cy="16" r="11" fill="${c}" fill-opacity="${earned?.6:.12}" stroke="${st}" stroke-width="1.5"/><path d="M10 18 Q16 10 22 18" fill="none" stroke="${st}" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="20" x2="20" y2="20" stroke="${st}" stroke-width="1.5" stroke-linecap="round"/>`,
+    bolt:    `<polygon points="16,3 28,14 22,14 26,29 4,18 10,18 6,3" fill="${c}" fill-opacity="${earned?.65:.12}" stroke="${st}" stroke-width="1.5"/>`,
+    flame:   `<path d="M16 4 C20 10 26 12 24 20 C22 26 10 26 8 20 C6 12 12 10 16 4Z" fill="${c}" fill-opacity="${earned?.6:.12}" stroke="${st}" stroke-width="1.5"/>`,
+    balance: `<rect x="5" y="20" width="22" height="3" rx="1" fill="${c}" fill-opacity="${earned?.65:.12}" stroke="${st}" stroke-width="1.2"/><line x1="16" y1="8" x2="16" y2="20" stroke="${st}" stroke-width="1.5"/><ellipse cx="9" cy="12" rx="5" ry="3" fill="${c}" fill-opacity="${earned?.5:.1}" stroke="${st}" stroke-width="1"/><ellipse cx="23" cy="12" rx="5" ry="3" fill="${c}" fill-opacity="${earned?.5:.1}" stroke="${st}" stroke-width="1"/>`,
+    feather: `<path d="M16 4 C26 8 28 20 16 28 C4 20 6 8 16 4Z" fill="${c}" fill-opacity="${earned?.55:.12}" stroke="${st}" stroke-width="1.5"/><line x1="16" y1="4" x2="16" y2="28" stroke="${st}" stroke-width="1" stroke-dasharray="2 2" opacity=".6"/>`,
+    mind:    `<circle cx="16" cy="16" r="11" fill="none" stroke="${st}" stroke-width="1.5"/><circle cx="16" cy="16" r="6" fill="${c}" fill-opacity="${earned?.55:.12}" stroke="${st}" stroke-width="1.2"/>`,
+    rain:    `<path d="M8 20 Q8 8 16 6 Q24 8 24 20 Q24 26 16 28 Q8 26 8 20Z" fill="${c}" fill-opacity="${earned?.55:.12}" stroke="${st}" stroke-width="1.5"/><path d="M11 16 L13 20" stroke="${st}" stroke-width="1.2" stroke-linecap="round"/><path d="M16 14 L18 18" stroke="${st}" stroke-width="1.2" stroke-linecap="round"/><path d="M19 16 L21 20" stroke="${st}" stroke-width="1.2" stroke-linecap="round"/>`,
+  };
+  return `<svg viewBox="0 0 32 32" fill="none" style="${glow}">${shapes[def.shape]}</svg>`;
+}
+
+function initMedals() {
+  const row = $('medals-row');
+  row.innerHTML = '';
+  medalDefs.forEach((def, i) => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'text-align:center';
+    const icon = document.createElement('div');
+    icon.id = `medal-${i}`;
+    icon.style.cssText = 'width:44px;height:44px;transition:.2s all';
+    icon.innerHTML = makeMedalSVG(def, false);
+    icon.addEventListener('mouseenter', () => { playSound('hover'); icon.style.transform='scale(1.1)'; });
+    icon.addEventListener('mouseleave', () => { icon.style.transform='scale(1)'; });
+    const lbl = document.createElement('div');
+    lbl.style.cssText = 'font-size:7px;color:#2e5e40;margin-top:2px;font-family:var(--fn)';
+    lbl.textContent = def.name;
+    wrap.appendChild(icon); wrap.appendChild(lbl);
+    row.appendChild(wrap);
+  });
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+async function init() {
+  initMedals();
+  initParticles();
+
+  config = await L.getConfig();
+  if (!config.token || !config.username) {
+    $('cfg-api').value = config.apiUrl || '';
+    showScreen('login');
+    $('hdr-r').innerHTML = '';
+    setTimeout(() => $('login-username').focus(), 150);
+  } else {
+    await enterMain();
+  }
+  setTimeout(() => playSound('boot'), 400);
+}
+
+async function enterMain() {
+  showScreen('main');
+  $('hdr-r').innerHTML = `
+    <div class="user-chip">
+      <div class="dot-s dg"></div>
+      <span>${config.username}</span>
+    </div>
+    <button class="btn-x" id="btn-logout">SALIR</button>
+  `;
+  $('btn-logout').addEventListener('click', doLogout);
+  $('btn-logout').addEventListener('mouseenter', () => playSound('hover'));
+
+  const shortUrl = (config.apiUrl || '—').replace(/^https?:\/\//, '');
+  $('footer-srv').textContent = shortUrl;
+  $('srv-url-display').textContent = config.apiUrl || '—';
+
+  addLog('lbg', `Sesión iniciada como <b>${config.username}</b>`);
+
+  await refreshSystemStatus();
+  await refreshBackendStatus();
+  await refreshStats();
+
+  setInterval(refreshSystemStatus, 5000);
+  setInterval(refreshBackendStatus, 30000);
+  setInterval(refreshStats, 30000);
+}
+
+// ─── Login ────────────────────────────────────────────────────────────────────
+$('btn-login').addEventListener('click', async () => {
+  const username = $('login-username').value.trim().toLowerCase();
+  const apiUrl = ($('cfg-api').value.trim() || 'http://localhost:8000').replace(/\/$/, '');
+  if (!username) { playSound('error'); return; }
+
+  await L.setConfig({ apiUrl });
+  $('btn-login').disabled = true;
+  $('btn-login').textContent = 'CONECTANDO...';
+  playSound('click');
+
+  const res = await L.login(username);
+  $('btn-login').disabled = false;
+  $('btn-login').textContent = 'ENTRAR AL TORNEO';
+
+  if (!res.ok) {
+    playSound('error');
+    addLog('lbr', `Error de login: ${res.error || 'sin conexión'}`);
+    return;
+  }
+  config = await L.getConfig();
+  await enterMain();
+});
+$('login-username').addEventListener('keypress', e => { if (e.key === 'Enter') $('btn-login').click(); });
+
+async function doLogout() {
+  playSound('click');
+  await L.logout();
+  config = await L.getConfig();
+  showScreen('login');
+  $('login-username').value = '';
+  $('hdr-r').innerHTML = '';
+}
+
+// ─── Main actions ─────────────────────────────────────────────────────────────
+$('btn-play').addEventListener('click', async () => {
+  if (emuRunning) return;
+  playSound('confirm');
+  const btn = $('btn-play');
+  btn.classList.add('loading');
+  btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="animation:spin 1s linear infinite"><circle cx="8" cy="8" r="6" stroke="#5a4800" stroke-width="1.5"/><path d="M8 2 A6 6 0 0 1 14 8" stroke="#f5d020" stroke-width="1.5" stroke-linecap="round"/></svg> INICIANDO...`;
+  addLog('lbg', '<b>mGBA</b> iniciando...');
+
+  const res = await L.launchEmulator();
+  btn.classList.remove('loading');
+  btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" stroke="#1a0a00" stroke-width="1.5" fill="none"/><path d="M2 11 Q11 11 20 11" stroke="#1a0a00" stroke-width="1.5"/><circle cx="11" cy="11" r="3" fill="none" stroke="#1a0a00" stroke-width="1.5"/><circle cx="11" cy="11" r="1.2" fill="#1a0a00"/></svg> JUGAR POKÉMON ESMERALDA`;
+
+  if (!res.ok) {
+    playSound('error');
+    addLog('lbr', `Error: ${res.error}`);
+    return;
+  }
+  addLog('lbg', `Emulador lanzado (PID ${res.pid})`);
+  await refreshSystemStatus();
+});
+$('btn-play').addEventListener('mouseenter', () => playSound('hover'));
+
+$('btn-hub').addEventListener('click', async () => {
+  playSound('click');
+  const res = await L.openWebapp();
+  if (!res.ok) { addLog('lbr', `Error: ${res.error}`); return; }
+  addLog('lbg', 'Hub abierto');
+});
+$('btn-hub').addEventListener('mouseenter', () => playSound('hover'));
+
+$('btn-ranking').addEventListener('click', async () => {
+  playSound('click');
+  await L.openWebapp();
+});
+
+$('btn-upload').addEventListener('click', async () => {
+  playSound('sync');
+  addLog('lby', 'Subiendo .sav manualmente...');
+  const res = await L.uploadNow();
+  if (!res.ok) addLog('lbr', `Upload: ${res.error}`);
+});
+
+$('btn-reset').addEventListener('click', () => {
+  playSound('error');
+  $('confirm-box').classList.remove('hidden');
+});
+$('btn-confirm-yes').addEventListener('click', async () => {
+  playSound('error');
+  $('confirm-box').classList.add('hidden');
+  await L.resetApp();
+  addLog('lby', 'Datos locales reseteados.');
+});
+$('btn-confirm-no').addEventListener('click', () => {
+  $('confirm-box').classList.add('hidden');
+});
+
+// ─── Dev panel toggle ─────────────────────────────────────────────────────────
+$('dev-toggle').addEventListener('click', () => {
+  devOpen = !devOpen;
+  $('dev-panel').classList.toggle('open', devOpen);
+  $('dev-chevron').classList.toggle('open', devOpen);
+  playSound('click');
+});
+
+// ─── Server URL edit ──────────────────────────────────────────────────────────
+$('btn-edit-srv').addEventListener('click', () => {
+  $('srv-view').classList.add('hidden');
+  $('srv-edit').classList.remove('hidden');
+  $('input-srv-url').value = config.apiUrl || '';
+  $('input-srv-url').focus();
+});
+$('btn-cancel-srv').addEventListener('click', () => {
+  $('srv-edit').classList.add('hidden');
+  $('srv-view').classList.remove('hidden');
+});
+$('btn-save-srv').addEventListener('click', async () => {
+  const url = $('input-srv-url').value.trim().replace(/\/$/, '');
+  if (!url) return;
+  await L.setConfig({ apiUrl: url });
+  config = await L.getConfig();
+  $('footer-srv').textContent = url.replace(/^https?:\/\//, '');
+  $('srv-url-display').textContent = url;
+  $('srv-edit').classList.add('hidden');
+  $('srv-view').classList.remove('hidden');
+  addLog('lbg', `Servidor cambiado a ${url}`);
+  playSound('click');
+  await refreshBackendStatus();
+});
+$('input-srv-url').addEventListener('keypress', e => { if (e.key === 'Enter') $('btn-save-srv').click(); });
+
+// Hover sounds for small buttons
+document.querySelectorAll('.btn-mini, .btn-dev, .btn-sm, .btn-cn, .btn-cy').forEach(b => {
+  b.addEventListener('mouseenter', () => playSound('hover'));
+});
+
+// ─── Events from main process ─────────────────────────────────────────────────
+L.onUploadStart(() => {
+  addLog('lby', 'Subiendo .sav al backend...');
+});
+
+L.onUploadSuccess(data => {
+  const ec = data.events?.length || 0;
+  stats.events += ec;
+  stats.badges = data.badges;
+  stats.pv = data.new_pv;
+  const details = ec > 0 ? ` · ${ec} evento${ec>1?'s':''}` : '';
+  addLog('lbg', `<b>Save subido</b> — ${data.badges}/8 medallas${details}, ${data.new_pv} PV`);
+  updateMedals(data.badges);
+  updateStatsUI();
+  playSound('sync');
+});
+
+L.onUploadError(data => {
+  addLog('lbr', `Error upload: ${data.error}`);
+  playSound('error');
+});
+
+L.onEmulatorStopped(() => {
+  emuRunning = false;
+  addLog('lbg', 'Emulador cerrado');
+  setBadge('badge-emu', 'warn', 'Emulador off');
+  refreshSystemStatus();
+});
+
+L.onTrackerReminder(data => {
+  $('tracker-path').textContent = data.path;
+  $('tracker-warn').classList.remove('hidden');
+  addLog('lbr', '⚠ Carga el script: Tools → Scripting → Load Script');
+});
+
+// ─── Status refresh ───────────────────────────────────────────────────────────
+async function refreshSystemStatus() {
+  const sys = await L.checkSystem();
+  const emu = await L.emulatorStatus();
+
+  emuRunning = emu.running;
+  if (emu.running) {
+    setBadge('badge-emu', 'ok', `mGBA · PID ${emu.pid}`);
+  } else if (sys.emulator) {
+    setBadge('badge-emu', 'warn', 'Emulador off');
+  } else {
+    setBadge('badge-emu', 'err', 'mGBA no encontrado');
+  }
+
+  setBadge('badge-rom', sys.rom ? 'ok' : 'err', sys.rom ? 'ROM OK' : 'ROM falta');
+
+  if (sys.savExists) {
+    setBadge('badge-save', 'ok', 'Save sync');
+    $('sync-txt').textContent = 'save · auto-sync activo';
+  } else {
+    setBadge('badge-save', 'warn', 'Sin .sav aún');
+    $('sync-txt').textContent = 'save · sin archivo aún';
+  }
+}
+
+async function refreshBackendStatus() {
+  try {
+    const res = await fetch(`${config.apiUrl}/health`, { signal: AbortSignal.timeout(5000) });
+    if (res.ok) {
+      setBadge('badge-backend', 'ok', 'Backend OK');
+      $('sys-dot').className = 'dot-s dg';
+      $('footer-dot').className = 'dot-s dg';
+    } else {
+      setBadge('badge-backend', 'err', `Backend ${res.status}`);
+      $('sys-dot').className = 'dot-s dy';
+      $('footer-dot').className = 'dot-s dy';
+    }
+  } catch(e) {
+    setBadge('badge-backend', 'err', 'Sin backend');
+    $('sys-dot').className = 'dot-s dy';
+    $('footer-dot').className = 'dot-s dy';
+  }
+}
+
+async function refreshStats() {
+  try {
+    const res = await fetch(`${config.apiUrl}/me`, {
+      headers: { Authorization: `Bearer ${config.token}` },
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!res.ok) return;
+    const body = await res.json();
+    const data = body.data || {};
+    stats.badges = data.snapshot?.badge_count || 0;
+    stats.pv = data.pv || 0;
+    updateMedals(stats.badges);
+    updateStatsUI();
+
+    // Ranking position
+    try {
+      const rRes = await fetch(`${config.apiUrl}/players`, { signal: AbortSignal.timeout(5000) });
+      if (rRes.ok) {
+        const rBody = await rRes.json();
+        const players = rBody.data || rBody;
+        const idx = players.findIndex(p => p.username === config.username);
+        $('stat-rank').textContent = idx >= 0 ? `#${idx + 1}` : '—';
+      }
+    } catch(e) {}
+  } catch(e) {}
+}
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+init().catch(err => console.error('Launcher init error:', err));
+</script>
+
+</body>
+</html>

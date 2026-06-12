@@ -1,0 +1,96 @@
+{
+  "name": "torneo-esmeralda-launcher",
+  "version": "1.8.0",
+  "description": "Launcher para el Torneo Pokémon Esmeralda",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win --x64",
+    "build:portable": "electron-builder --win --x64 --config.win.target=portable",
+    "release": "electron-builder --win --x64 --publish always"
+  },
+  "author": "Torneo Esmeralda",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "chokidar": "^3.6.0",
+    "electron-updater": "^6.8.9",
+    "form-data": "^4.0.0",
+    "node-fetch": "^2.7.0"
+  },
+  "build": {
+    "appId": "com.torneoesmeralda.launcher",
+    "productName": "Torneo Esmeralda",
+    "directories": {
+      "output": "dist",
+      "buildResources": "resources"
+    },
+    "files": [
+      "src/**/*",
+      "resources/**/*",
+      "node_modules/**/*",
+      "!**/*.md"
+    ],
+    "extraResources": [
+      {
+        "from": "emulator",
+        "to": "emulator",
+        "filter": [
+          "**/*",
+          "!README.txt"
+        ]
+      },
+      {
+        "from": "rom",
+        "to": "rom",
+        "filter": [
+          "**/*.cheats",
+          "**/Pokemon Emerald Base.gba"
+        ]
+      },
+      {
+        "from": "script",
+        "to": "script",
+        "filter": [
+          "**/*.lua"
+        ]
+      },
+      {
+        "from": "../webapp",
+        "to": "webapp",
+        "filter": [
+          "**/*.html"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "resources/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "TorneoEsmeralda-Setup-${version}.exe"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "dinopolllo",
+        "repo": "torneo-esmeralda-launcher",
+        "releaseType": "release"
+      }
+    ]
+  }
+}

@@ -1,0 +1,20 @@
+# Dependencias e instaladores compilados
+node_modules/
+dist/
+
+# Recursos binarios pesados (los amigos los reciben en el .exe)
+emulator/
+rom/*.gba
+rom/*.sav
+
+# Saves y logs de runtime
+saves/
+*.log
+
+# Configuración local del jugador (contiene token de sesión)
+config.json
+launcher.log
+
+# Sistema
+.DS_Store
+Thumbs.db
