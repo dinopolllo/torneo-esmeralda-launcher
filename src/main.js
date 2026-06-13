@@ -671,12 +671,88 @@ async function ensureRomPatched() {
   return await patchRomForPlayer(config.starter_seed);
 }
 
+// Copia el .sav a SAVES_DIR (AppData) como backup. SAVES_DIR persiste entre
+// updates, ROM_DIR no. Se llama tras cada cambio detectado del .sav.
+function mirrorSavToBackup(savPath) {
+  try {
+    if (!savPath || !fs.existsSync(savPath)) return;
+    const fileName = path.basename(savPath);
+    const backupPath = path.join(SAVES_DIR, fileName);
+    if (path.resolve(savPath) === path.resolve(backupPath)) return;  // ya está en backup
+    fs.mkdirSync(SAVES_DIR, { recursive: true });
+    fs.copyFileSync(savPath, backupPath);
+    console.log(`[sav] Backup espejado en AppData: ${backupPath}`);
+  } catch (e) {
+    console.warn('[sav] No se pudo espejar backup:', e.message);
+  }
+}
+
+// Si ROM_DIR no tiene .sav pero SAVES_DIR sí, restaurarlo. Crítico tras un
+// auto-update que limpia resources/.
+function restoreSavFromBackup() {
+  try {
+    const rom = findRom();
+    if (!rom) return;
+    const base = path.parse(rom).name;
+    const inRom    = path.join(ROM_DIR,   `${base}.sav`);
+    const inBackup = path.join(SAVES_DIR, `${base}.sav`);
+    if (fs.existsSync(inRom)) return;
+    if (!fs.existsSync(inBackup)) return;
+    fs.copyFileSync(inBackup, inRom);
+    console.log(`[sav] Progreso restaurado desde AppData: ${inBackup} → ${inRom}`);
+  } catch (e) {
+    console.warn('[sav] No se pudo restaurar backup:', e.message);
+  }
+}
+
+// Si NINGUNA copia local existe pero hay backup remoto en el backend, lo
+// descarga. Última red de seguridad — ej. usuario formateó la PC.
+async function restoreSavFromServer() {
+  const config = loadConfig();
+  if (!config.token) return false;
+  const rom = findRom();
+  if (!rom) return false;
+  const base = path.parse(rom).name;
+  const inRom    = path.join(ROM_DIR,   `${base}.sav`);
+  const inBackup = path.join(SAVES_DIR, `${base}.sav`);
+  if (fs.existsSync(inRom) || fs.existsSync(inBackup)) return false;
+
+  try {
+    const info = await fetch(`${config.apiUrl}/save/info`, {
+      headers: { Authorization: `Bearer ${config.token}` },
+    }).then(r => r.json());
+    if (!info?.data?.exists) {
+      console.log('[sav] Sin backup remoto disponible');
+      return false;
+    }
+    console.log(`[sav] Descargando backup remoto (${info.data.size} B, ${info.data.modified_at})`);
+    const res = await fetch(`${config.apiUrl}/save/download`, {
+      headers: { Authorization: `Bearer ${config.token}` },
+    });
+    if (!res.ok) {
+      console.warn('[sav] Fallo descarga remota:', res.status);
+      return false;
+    }
+    const buf = Buffer.from(await res.arrayBuffer());
+    fs.mkdirSync(SAVES_DIR, { recursive: true });
+    fs.writeFileSync(inRom, buf);
+    fs.writeFileSync(inBackup, buf);
+    console.log(`[sav] Progreso restaurado desde el servidor a ${inRom}`);
+    notifyUI('sav:restored', { source: 'server', size: buf.length });
+    return true;
+  } catch (e) {
+    console.warn('[sav] Restore remoto falló:', e.message);
+    return false;
+  }
+}
+
 async function launchEmulator() {
   if (emulatorProcess) {
     return { ok: false, error: 'El emulador ya está corriendo' };
   }
 
   await ensureRomPatched();
+  restoreSavFromBackup();
 
   const emuPath = findEmulator();
   const rom = findRom();
@@ -771,6 +847,9 @@ function startSavWatcher() {
 
 function handleSavChange(reason, savPath) {
   console.log(`SAV ${reason}: ${savPath}`);
+
+  // Espejar inmediatamente a SAVES_DIR (AppData) — sobrevive a auto-updates
+  mirrorSavToBackup(savPath);
 
   // Debounce — esperar 2s tras el último cambio
   if (uploadDebounceTimer) clearTimeout(uploadDebounceTimer);
@@ -1036,8 +1115,18 @@ function createWindow() {
     }
   });
 
-  // Iniciar watcher de .sav y servidor de eventos del tracker
-  startSavWatcher();
+  // Asegurar ROM + restaurar .sav (local primero, servidor como fallback)
+  // ANTES del watcher para que la primera lectura del estado sea correcta
+  (async () => {
+    try {
+      await ensureRomPatched();
+      restoreSavFromBackup();
+      await restoreSavFromServer();
+    } catch (e) {
+      console.warn('[init] restore fallback falló:', e.message);
+    }
+    startSavWatcher();
+  })();
   startGameEventServer();
   // Chequear updates en cuanto la ventana esté lista (3s después)
   setTimeout(() => checkForUpdates(), 3_000);
