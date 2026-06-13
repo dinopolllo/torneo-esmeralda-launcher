@@ -1,6 +1,6 @@
 {
   "name": "torneo-esmeralda-launcher",
-  "version": "1.8.2",
+  "version": "1.8.3",
   "description": "Launcher para el Torneo Pokémon Esmeralda",
   "main": "src/main.js",
   "scripts": {

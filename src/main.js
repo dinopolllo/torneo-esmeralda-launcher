@@ -659,10 +659,24 @@ function checkScriptFlag(emuPath) {
 
 // ─── Lanzar mGBA ─────────────────────────────────────────────────────────────
 
-function launchEmulator() {
+// Si la ROM parcheada falta (puede pasar tras un auto-update que reemplaza
+// la carpeta resources/) pero tenemos un starter_seed en config, regeneramos
+// la ROM personalizada desde Pokemon Emerald Base.gba antes de lanzar.
+async function ensureRomPatched() {
+  const patchedPath = path.join(ROM_DIR, 'Pokemon Emerald.gba');
+  if (fs.existsSync(patchedPath)) return true;
+  const config = loadConfig();
+  if (!config.starter_seed) return false;
+  console.log('[rom] ROM parcheada ausente — regenerando con seed', config.starter_seed);
+  return await patchRomForPlayer(config.starter_seed);
+}
+
+async function launchEmulator() {
   if (emulatorProcess) {
     return { ok: false, error: 'El emulador ya está corriendo' };
   }
+
+  await ensureRomPatched();
 
   const emuPath = findEmulator();
   const rom = findRom();
@@ -673,7 +687,7 @@ function launchEmulator() {
   }
   if (!rom) {
     console.error(`ROM no encontrada en: ${ROM_DIR}`);
-    return { ok: false, error: `ROM no encontrada en: ${ROM_DIR}` };
+    return { ok: false, error: `ROM no encontrada en: ${ROM_DIR}. Cierra sesión y vuelve a iniciar.` };
   }
   console.log(`Lanzando emulador: ${emuPath}`);
 
@@ -869,7 +883,7 @@ ipcMain.handle('auth:logout', () => {
   return { ok: true };
 });
 
-ipcMain.handle('emulator:launch', () => launchEmulator());
+ipcMain.handle('emulator:launch', async () => await launchEmulator());
 ipcMain.handle('emulator:stop', () => stopEmulator());
 ipcMain.handle('emulator:status', () => ({
   running: emulatorProcess !== null,
