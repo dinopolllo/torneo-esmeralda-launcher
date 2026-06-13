@@ -399,19 +399,40 @@ local function nextPrng()
   return _prngState
 end
 
--- Encuentra un PID que cumpla pid%24==0 y opcionalmente shiny
+-- Encuentra un PID que cumpla pid%24==0 (orden ABCD) y opcionalmente shiny.
+--
+-- Probabilidades:
+--   - pid % 24 == 0           ≈ 4.17%
+--   - shiny                   ≈ 0.012%
+--   - combinada al azar       ≈ 1/200k (4096 intentos ≠ confiable)
+--
+-- Para shinies usamos construcción dirigida:
+--   1. elegir pid_hi al azar
+--   2. fijar pid_lo = (otid_lo XOR otid_hi XOR pid_hi) XOR shinyRoll (shinyRoll∈[0,7])
+--   3. verificar pid % 24 == 0; si no, probar otro pid_hi
+-- Esto sube la tasa de éxito a >99.9% con ~200 intentos.
 local function pickPid(otid, isShiny)
+  -- Re-seed con datos vivos para variabilidad entre llamadas
+  _prngState = (_prngState ~ getEncryptionKey() ~ frameCount) & 0xFFFFFFFF
+
   local otid_lo = otid & 0xFFFF
   local otid_hi = (otid >> 16) & 0xFFFF
-  for _ = 1, 4096 do
-    local pid = nextPrng()
-    if pid % 24 == 0 then
-      if not isShiny then return pid end
-      local pid_lo = pid & 0xFFFF
-      local pid_hi = (pid >> 16) & 0xFFFF
-      local s = otid_lo ~ otid_hi ~ pid_lo ~ pid_hi
-      if s < 8 then return pid end
+
+  if isShiny then
+    for _ = 1, 8192 do
+      local pid_hi = nextPrng() & 0xFFFF
+      local roll = nextPrng() & 0x7  -- 0..7
+      local pid_lo = (otid_lo ~ otid_hi ~ pid_hi ~ roll) & 0xFFFF
+      local pid = (pid_hi << 16) | pid_lo
+      if pid % 24 == 0 then return pid end
     end
+    log("pickPid: no se encontró PID shiny — fallback no shiny")
+  end
+
+  -- No shiny (o fallback): solo necesitamos pid % 24 == 0
+  for _ = 1, 65536 do
+    local pid = nextPrng()
+    if pid % 24 == 0 then return pid end
   end
   return 0x18  -- fallback ABCD-order
 end
@@ -512,6 +533,17 @@ local function findEmptyBoxSlot()
   return nil
 end
 
+-- NatDex (PokeAPI) → species ID interno del juego (Gen III decomp).
+-- Gen I (1-151) y Gen II (152-251): internal == NatDex.
+-- Gen III / Hoenn (252-386): internal = NatDex + 25 (hay 25 placeholders
+-- "??????????" entre Celebi (251) y Treecko (277) en la tabla interna).
+local function natdexToInternal(natdex)
+  if natdex >= 252 and natdex <= 386 then
+    return natdex + 25
+  end
+  return natdex
+end
+
 local function givePokemonToPC(pokemonId, name, isShiny)
   if not CFG then log("Sin CFG ROM"); return false end
   if pokemonId == 0 then return false end
@@ -521,13 +553,14 @@ local function givePokemonToPC(pokemonId, name, isShiny)
     return false
   end
 
+  local species = natdexToInternal(pokemonId)
   local otid  = getTrainerId()
   local pid   = pickPid(otid, isShiny)
   local key   = pid ~ otid
   local level = 5  -- todos los huevos eclosionan al nivel 5
 
-  -- Construir substructs y encriptarlos
-  local subs    = buildSubstructs(pokemonId, otid, level)
+  -- Construir substructs y encriptarlos (usando species INTERNO, no NatDex)
+  local subs    = buildSubstructs(species, otid, level)
   local checksum = checksum48(subs)
   local enc     = encryptSubstructs(subs, key)
 

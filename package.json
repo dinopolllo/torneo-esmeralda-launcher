@@ -1,6 +1,6 @@
 {
   "name": "torneo-esmeralda-launcher",
-  "version": "1.8.0",
+  "version": "1.8.2",
   "description": "Launcher para el Torneo Pokémon Esmeralda",
   "main": "src/main.js",
   "scripts": {
@@ -24,6 +24,7 @@
   "build": {
     "appId": "com.torneoesmeralda.launcher",
     "productName": "Torneo Esmeralda",
+    "compression": "maximum",
     "directories": {
       "output": "dist",
       "buildResources": "resources"
@@ -34,13 +35,18 @@
       "node_modules/**/*",
       "!**/*.md"
     ],
+    "electronLanguages": ["es", "en-US"],
     "extraResources": [
       {
         "from": "emulator",
         "to": "emulator",
         "filter": [
           "**/*",
-          "!README.txt"
+          "!README.txt",
+          "!README_DE.html",
+          "!README_ZH_CN.html",
+          "!mgba-sdl.exe",
+          "!nointro.dat"
         ]
       },
       {
