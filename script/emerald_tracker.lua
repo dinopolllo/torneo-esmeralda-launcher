@@ -392,36 +392,38 @@ end
 -- Exp acumulada para nivel 5 (curva Medium-Fast; aceptable para casi todos)
 local EXP_LEVEL5_MEDIUM_FAST = 125
 
--- PRNG simple para PID
+-- PRNG xorshift32 — full-cycle (2^32 - 1) y buena distribución de bits.
+-- El LCG anterior tenía bits bajos de mala calidad, lo cual hacía que
+-- el método de construcción shiny fallara para ciertos OTIDs.
 local _prngState = 0x12345678
 local function nextPrng()
-  _prngState = (_prngState * 1103515245 + 12345) & 0xFFFFFFFF
-  return _prngState
+  local s = _prngState
+  s = (s ~ ((s << 13) & 0xFFFFFFFF)) & 0xFFFFFFFF
+  s = s ~ (s >> 17)
+  s = (s ~ ((s << 5) & 0xFFFFFFFF)) & 0xFFFFFFFF
+  if s == 0 then s = 0x12345678 end  -- xorshift no puede arrancar de 0
+  _prngState = s
+  return s
 end
 
 -- Encuentra un PID que cumpla pid%24==0 (orden ABCD) y opcionalmente shiny.
---
--- Probabilidades:
---   - pid % 24 == 0           ≈ 4.17%
---   - shiny                   ≈ 0.012%
---   - combinada al azar       ≈ 1/200k (4096 intentos ≠ confiable)
 --
 -- Para shinies usamos construcción dirigida:
 --   1. elegir pid_hi al azar
 --   2. fijar pid_lo = (otid_lo XOR otid_hi XOR pid_hi) XOR shinyRoll (shinyRoll∈[0,7])
 --   3. verificar pid % 24 == 0; si no, probar otro pid_hi
--- Esto sube la tasa de éxito a >99.9% con ~200 intentos.
+-- Con xorshift32, ~33% de los pid_hi cumplen → 16384 iter = casi 100% éxito.
 local function pickPid(otid, isShiny)
-  -- Re-seed con datos vivos para variabilidad entre llamadas
-  _prngState = (_prngState ~ getEncryptionKey() ~ frameCount) & 0xFFFFFFFF
+  _prngState = (_prngState ~ getEncryptionKey() ~ frameCount ~ otid) & 0xFFFFFFFF
+  if _prngState == 0 then _prngState = 0xDEADBEEF end
 
   local otid_lo = otid & 0xFFFF
   local otid_hi = (otid >> 16) & 0xFFFF
 
   if isShiny then
-    for _ = 1, 8192 do
+    for _ = 1, 16384 do
       local pid_hi = nextPrng() & 0xFFFF
-      local roll = nextPrng() & 0x7  -- 0..7
+      local roll = nextPrng() & 0x7
       local pid_lo = (otid_lo ~ otid_hi ~ pid_hi ~ roll) & 0xFFFF
       local pid = (pid_hi << 16) | pid_lo
       if pid % 24 == 0 then return pid end
@@ -429,12 +431,11 @@ local function pickPid(otid, isShiny)
     log("pickPid: no se encontró PID shiny — fallback no shiny")
   end
 
-  -- No shiny (o fallback): solo necesitamos pid % 24 == 0
   for _ = 1, 65536 do
     local pid = nextPrng()
     if pid % 24 == 0 then return pid end
   end
-  return 0x18  -- fallback ABCD-order
+  return 0x18
 end
 
 -- Calcula el checksum como suma de los 24 u16 de las 4 substructs (decoded)
@@ -566,6 +567,34 @@ local function natdexToInternal(natdex)
   return natdex
 end
 
+-- Codificación de caracteres ASCII → bytes Gen III (Latin).
+local CHAR_TO_GEN3 = {
+  [" "]=0x00, ["!"]=0xAB, ["?"]=0xAC, ["."]=0xAD, ["-"]=0xAE,
+  ["'"]=0xB4, ["\""]=0xB1,
+}
+for c = 0, 9 do CHAR_TO_GEN3[tostring(c)] = 0xA1 + c end
+for c = 0, 25 do
+  CHAR_TO_GEN3[string.char(0x41 + c)] = 0xBB + c   -- A-Z
+  CHAR_TO_GEN3[string.char(0x61 + c)] = 0xD5 + c   -- a-z
+end
+
+-- Codifica un nombre como hasta `maxBytes` bytes Gen III seguido de 0xFF terminador.
+-- El juego usa el primer byte del nickname para detectar si tiene apodo o no:
+-- si está vacío (0xFF), muestra cadena vacía. Por eso siempre escribimos el name.
+local function encodeGen3Name(name, maxBytes)
+  local out = {}
+  local upper = string.upper(name or "")
+  for i = 1, #upper do
+    if #out >= maxBytes then break end
+    local ch = upper:sub(i, i)
+    local b = CHAR_TO_GEN3[ch]
+    if b then out[#out + 1] = b end
+  end
+  -- Rellenar el resto con terminador
+  for i = #out + 1, maxBytes do out[i] = 0xFF end
+  return out
+end
+
 local function givePokemonToPC(pokemonId, name, isShiny)
   if not CFG then log("Sin CFG ROM"); return false end
   if pokemonId == 0 then return false end
@@ -589,10 +618,10 @@ local function givePokemonToPC(pokemonId, name, isShiny)
   -- Header de BoxPokemon (32 bytes)
   emu:write32(addr + 0x00, pid)
   emu:write32(addr + 0x04, otid)
-  -- nickname: usar nombre del entrenador como placeholder (10 bytes)
-  -- (el juego mostrará el nombre del Pokémon si language está bien)
-  -- nickname vacío (0xFF terminator) → el juego muestra el nombre de la especie
-  for i = 0, 9 do emu:write8(addr + 0x08 + i, 0xFF) end
+  -- nickname (10 bytes): codificado en Gen III. El juego copia este string
+  -- tal cual a la UI; un nickname vacío se muestra como cadena vacía.
+  local nick = encodeGen3Name(name, 10)
+  for i = 0, 9 do emu:write8(addr + 0x08 + i, nick[i+1]) end
   -- language: usar el de la ROM detectada (evita el "?" cuando hay mismatch)
   emu:write8(addr + 0x12, CFG.language or 2)
   emu:write8(addr + 0x13, 0x02)  -- misc flags: bit1 = hasSpecies
@@ -673,7 +702,7 @@ local function init()
   CFG = ROM_PROFILES[ROM_CODE]
   if CFG then
     log("=================================================")
-    log("Tracker v4 (species table v1.8.5) — ROM detectada: " .. CFG.name)
+    log("Tracker v4 (species + nickname + shiny xorshift v1.8.6) — ROM detectada: " .. CFG.name)
     log(string.format("SB1_PTR=0x%08X SB2_PTR=0x%08X STORAGE=0x%08X",
         CFG.sb1_ptr, CFG.sb2_ptr, CFG.storage_ptr))
     log(string.format("PARTY_BASE=0x%08X", CFG.party))
